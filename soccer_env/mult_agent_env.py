@@ -9,6 +9,8 @@ from soccer_env.single_agent_env import SingleAgentEnv
 import socket
 from contextlib import closing
 import ray
+import psutil
+
 import time
 
 try:
@@ -37,22 +39,17 @@ def make_multiagent(env_name_or_creator):
         def __init__(self, config):
             self.viewer = None
             self.server_process = None
+            self.rcspid = None
             self.server_port = None
             self.hfo_path = hfo_py.get_hfo_path()
             #print(self.hfo_path)
             self._configure_environment(config)
             self.env = hfo_py.HFOEnvironment()
-                
-                
+            self.one_hot_state_encoding = config.get("one_hot_state_encoding",
+                                                     False)
             # num = config.pop("num_agents", 1)
             self.num = config["server_config"]["offense_agents"]
             
-            # if isinstance(env_name_or_creator, str):
-            #     self.agents = [
-            #         gym.make(env_name_or_creator) for _ in range(num)
-            #     ]
-            # else:
-            # time.sleep(5)
             self.agents = []
             for i in range(self.num):
                 self.agents.append(env_name_or_creator.remote(config, self.server_port))
@@ -107,14 +104,26 @@ def make_multiagent(env_name_or_creator):
             if not log_game:  cmd += " --no-logging"
             print('Starting server with command: %s' % cmd)
             self.server_process = subprocess.Popen(cmd.split(' '), shell=False)
-            time.sleep(5) # Wait for server to startup before connecting a player
+            time.sleep(1) # Wait for server to startup before connecting a player
+            print("server_process", psutil.Process(self.server_process.pid).children(recursive=True))
+            self.rcspid = psutil.Process(self.server_process.pid).children(recursive=True)[0].pid
+            print("rcssserver_process.pid", self.rcspid)
+            time.sleep(2)
+
         def __del__(self):#note
-            for i in range(num):
-                self.agents[i].__del__.remote()
+            # not be used
+            os.kill(self.server_process.pid, signal.SIGINT)
+            # for i in range(num):
+            #     self.agents[i].__del__.remote()
 
         def reset(self):
             self.dones = set()
             returned = {i: ray.get(stats_id) for i, stats_id in enumerate([a.reset.remote() for a in self.agents])}
+            if self.one_hot_state_encoding:
+                returned = {
+                    0: {"obs": returned[0]},
+                    1: {"obs": returned[1]}
+                }
             return returned
 
         def step(self, action_dict):
@@ -125,14 +134,21 @@ def make_multiagent(env_name_or_creator):
                 if done[i]:
                     self.dones.add(i)
             done["__all__"] = len(self.dones) == len(self.agents)
+            if self.one_hot_state_encoding:
+                obs = {
+                    0: {"obs": obs[0]},
+                    1: {"obs": obs[1]}
+                }
             return obs, rew, done, info
 
         def close(self):
-            if self.server_process is not None:
-                try:
-                    os.kill(self.server_process.pid, signal.SIGKILL)
-                except Exception:
-                    pass
+            # if self.server_process is not None:
+            #     try:
+            os.kill(self.rcspid, signal.SIGKILL)
+            os.kill(self.server_process.pid, signal.SIGKILL)
+            
+                # except Exception:
+                #     pass
 
         def _start_viewer(self):
         
