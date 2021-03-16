@@ -64,12 +64,12 @@ def make_multiagent(env_name_or_creator):
 
             self._start_hfo_server(**config['server_config'])
 
-        def _start_hfo_server(self, frames_per_trial=500,
+        def _start_hfo_server(self, frames_per_trial=600,
                             #untouched_time=1000, 
                             untouched_time=100, 
-                            offense_agents=1,
+                            offense_agents=2,
                             defense_agents=0, offense_npcs=0,
-                            defense_npcs=0, sync_mode=True, port=None,
+                            defense_npcs=2, sync_mode=True, port=None,
                             offense_on_ball=0, fullstate=True, seed=-1,
                             ball_x_min=0.0, ball_x_max=0.2,
                             verbose=False, log_game=False,
@@ -102,7 +102,7 @@ def make_multiagent(env_name_or_creator):
             if fullstate:     cmd += " --fullstate"
             if verbose:       cmd += " --verbose"
             if not log_game:  cmd += " --no-logging"
-            print('Starting server with command: %s' % cmd)
+            #print('Starting server with command: %s' % cmd)
             self.server_process = subprocess.Popen(cmd.split(' '), shell=False)
             time.sleep(1) # Wait for server to startup before connecting a player
             print("server_process", psutil.Process(self.server_process.pid).children(recursive=True))

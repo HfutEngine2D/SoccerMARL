@@ -11,7 +11,6 @@ import numpy as np
 import ray
 from gym import error, spaces, utils
 from gym.utils import seeding
-
 try:
     import hfo_py
 except ImportError as e:
@@ -26,7 +25,7 @@ class SingleAgentEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, config, port):
-        print("single agent",port)
+        #print("single agent",port)
         self.server_port = port
         self.hfo_path = hfo_py.get_hfo_path()
         self.env = hfo_py.HFOEnvironment()
@@ -34,9 +33,9 @@ class SingleAgentEnv(gym.Env):
             self.env.connectToServer( feature_set=config['feature_set'], config_dir=hfo_py.get_config_path(), server_port=self.server_port)
         else :
             self.env.connectToServer( config_dir=hfo_py.get_config_path(), server_port=self.server_port)
-        self.observation_space = spaces.Box(low=-1, high=1,
+        self.orgin_observation_space = spaces.Box(low=-1, high=1,
                                             shape=((self.env.getStateSize(),)), dtype=np.float32)
-        print("single agent init",self.observation_space)
+        #print("single agent init",self.observation_space)
         self.action_space = spaces.Discrete(14)
 
         self.status = hfo_py.IN_GAME
@@ -47,6 +46,18 @@ class SingleAgentEnv(gym.Env):
         self.got_kickable_reward = False
         self.first_step = True
         self.unum = self.env.getUnum()  # uniform number (identifier) of our lone agent
+        
+        self.observation_space=spaces.Dict({
+            "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
+            "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
+            "orgin_obs":self.orgin_observation_space
+
+        })
+        
+    def update_avail_actions(self):
+        self.action_mask=np.array([1.]*self.action_space.n)
+        self.action_assignments=np.array([0.,0.]*self.action_space.n)  #todo
+        pass   #todo
 
     def get_observation_space(self):
         return self.observation_space
@@ -63,10 +74,16 @@ class SingleAgentEnv(gym.Env):
     def step(self, action):
         self._take_action(action)
         self.status = self.env.step()
-        reward = self._get_reward()
-        ob = self.env.getState()
+        reward = self._get_reward(action)
+        orig_obs = self.env.getState()
         episode_over = self.status != hfo_py.IN_GAME
-        return ob, reward, episode_over, {'status': self.status}
+        self.update_avail_actions()
+        obs={
+            "action_mask":self.action_mask,
+            "avail_actions":self.action_assignments,
+            "orgin_obs":orig_obs
+        }
+        return obs, reward, episode_over, {'status': self.status}
 
     def _take_action(self, action):
         """ Converts the action space into an HFO action. """
@@ -80,7 +97,7 @@ class SingleAgentEnv(gym.Env):
         #  else:
             #  return 0
 
-    def _get_reward(self):
+    def _get_reward(self,action):
         """
         Agent is rewarded for minimizing the distance between itself and
         the ball, minimizing the distance between the ball and the goal,
@@ -120,12 +137,16 @@ class SingleAgentEnv(gym.Env):
         reward = 0
         if not self.first_step:
             mtb = self.__move_to_ball_reward(kickable_delta, ball_prox_delta)
-            ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)
-            eot = self.__EOT_reward()
+            ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)*0
+            eot = self.__EOT_reward()*0
             reward = mtb + ktg + eot
             #print("mtb: %.06f ktg: %.06f eot: %.06f"%(mtb,ktg,eot))
 
         self.first_step = False
+        if self.env.playerOnBall().unum == self.unum:
+            reward = reward + 1
+        if self.env.playerOnBall().unum == self.unum and ACTION_LOOKUP[action] == hfo_py.AUTOPASS:
+            reward = reward + 4 
         #print("r =",reward)
         return reward
 
@@ -164,7 +185,12 @@ class SingleAgentEnv(gym.Env):
             # prevent infinite output when server dies
             if self.status == hfo_py.SERVER_DOWN:
                 raise ServerDownException("HFO server down!")
-        return self.env.getState()
+        self.update_avail_actions()
+        return {
+            "action_mask":self.action_mask,
+            "avail_actions":self.action_assignments,
+            "orgin_obs":self.env.getState()
+        }
 
 
 class ServerDownException(Exception):

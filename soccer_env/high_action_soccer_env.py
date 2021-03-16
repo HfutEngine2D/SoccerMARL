@@ -38,14 +38,14 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         self.server_process = None
         self.server_port = None
         self.hfo_path = hfo_py.get_hfo_path()
-        print(self.hfo_path)
+        #print(self.hfo_path)
         self._configure_environment(config)
         self.env = hfo_py.HFOEnvironment()
         if  "feature_set" in config :
             self.env.connectToServer( feature_set=config['feature_set'], config_dir=hfo_py.get_config_path(), server_port=self.server_port)
         else :
             self.env.connectToServer( config_dir=hfo_py.get_config_path(), server_port=self.server_port)
-        print("Shape =",self.env.getStateSize())
+        #print("Shape =",self.env.getStateSize())
         self.observation_space = spaces.Box(low=-1, high=1,
                                             shape=((self.env.getStateSize(),)), dtype=np.float32)
         # Action space omits the Tackle/Catch actions, which are useful on defense
@@ -54,7 +54,7 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         #   Move()
         #   Shoot()
         #   Dribble()
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(5)
 
         self.status = hfo_py.IN_GAME
         self._seed = -1
@@ -130,7 +130,7 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         if fullstate:     cmd += " --fullstate"
         if verbose:       cmd += " --verbose"
         if not log_game:  cmd += " --no-logging"
-        print('Starting server with command: %s' % cmd)
+        #print('Starting server with command: %s' % cmd)
         self.server_process = subprocess.Popen(cmd.split(' '), shell=False)
         time.sleep(10) # Wait for server to startup before connecting a player
 
@@ -148,7 +148,7 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         self._take_action(action)
         self.status = self.env.step()
         reward = self._get_reward()
-        ob = self.env.getState()
+        ob = self.env.getState(action)
         episode_over = self.status != hfo_py.IN_GAME
         return ob, reward, episode_over, {'status': self.status}
 
@@ -157,12 +157,14 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         action_type = ACTION_LOOKUP[action]
         self.env.act(action_type)
 
-    #  def _get_reward(self):
-        #  """ Reward is given for scoring a goal. """
-        #  if self.status == hfo_py.GOAL:
-            #  return 1
-        #  else:
-            #  return 0
+    # def _get_reward(self,action):
+    #     """ Reward is given for scoring a goal. """
+    #     if self.env.playerOnBall().unum == self.unum and ACTION_LOOKUP[action] == hfo_py.AUTOPASS:
+    #         return 4
+    #     elif self.status == hfo_py.GOAL
+    #         return 2
+    #     else:
+    #         return 0
     def _get_reward(self):
         """
         Agent is rewarded for minimizing the distance between itself and
@@ -222,20 +224,7 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
             self.got_kickable_reward = True
         return reward
 
-    def __kick_to_goal_reward(self, ball_dist_goal_delta):
-        if (self.env.playerOnBall().unum == self.unum):
-            return -ball_dist_goal_delta
-        elif self.got_kickable_reward == True:
-            return 0.2 * -ball_dist_goal_delta
-        return 0.
-
-    def __EOT_reward(self):
-        if self.status == hfo_py.GOAL:
-            return 5.
-        elif self.status == hfo_py.CAPTURED_BY_DEFENSE:
-            return -1.
-        return 0.
-
+     
     def reset(self):
         """ Repeats NO-OP action until a new episode begins. """
         while self.status == hfo_py.IN_GAME:
@@ -279,6 +268,7 @@ ACTION_LOOKUP = {
     2 : hfo_py.SHOOT,
     3 : hfo_py.DRIBBLE, # Used on defense to slide tackle the ball
     4 : hfo_py.CATCH,  # Used only by goalie to catch the ball
+    5 : hfo_py.AUTOPASS
 }
 
 STATUS_LOOKUP = {

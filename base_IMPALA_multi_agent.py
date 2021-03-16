@@ -3,6 +3,8 @@
 
 from ray import tune
 from ray.rllib.agents.impala import ImpalaTrainer
+from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.a3c import A3CTrainer
 from ray.tune import grid_search
 from gym import spaces
 import numpy as np
@@ -13,7 +15,7 @@ from soccer_env.mult_agent_env import MultiAgentSoccer
 
 env_config = {
     "server_config": {
-        "defense_npcs": 1,
+        "defense_npcs": 2,
         "offense_agents": 2
     },
     " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET,
@@ -46,9 +48,13 @@ policies = {
 }
 policy_ids = list(policies.keys())
 
-stop = {"timesteps_total": 20000000, "episode_reward_mean": 10}
+stop = {"timesteps_total": 20000000
+#, "episode_reward_mean": 100
+}
 results = tune.run(
-    ImpalaTrainer,
+    #ImpalaTrainer,
+    PPOTrainer,
+    #A3CTrainer,
     config={
         "env": MultiAgentSoccer,
         "env_config": env_config,
@@ -56,19 +62,19 @@ results = tune.run(
             'policies': policies,
             'policy_mapping_fn': lambda agent_id: policy_ids[agent_id],
         },
-        "model": {
-            "fcnet_hiddens":
-            grid_search([[256, 256], [512, 512], [512, 256, 128],
-                         [1024, 512, 256], [2048, 1024, 512, 256, 128]]),
-            "fcnet_activation":
-            grid_search(["swish", "relu", "tanh"]),
-            "use_lstm":
-            grid_search([False, True])
-        },
+        # "model": {
+        #     "fcnet_hiddens":
+        #     grid_search([[256, 256], [512, 512], [512, 256, 128],
+        #                  [1024, 512, 256], [2048, 1024, 512, 256, 128]]),
+        #     "fcnet_activation":
+        #     grid_search(["swish", "relu", "tanh"]),
+        #     "use_lstm":
+        #     grid_search([False, True])
+        # },
         "callbacks": {
             "on_episode_end": on_episode_end,
         },
-        "lr": grid_search([0.0003,0.0005,0.0007,0.0001]),
+        "lr": grid_search([0.0001,0.0002]),
         "num_gpus": 1 if torch.cuda.is_available() else 0,
         "num_workers": 5,
         "framework": 'torch'

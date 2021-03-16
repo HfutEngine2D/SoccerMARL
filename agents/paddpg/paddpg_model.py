@@ -198,7 +198,7 @@ class PADDPGTorchModel(TorchModelV2, nn.Module):
             # through the NN. For discrete actions, only obs.
             q_net = nn.Sequential()
             ins = self.obs_ins + self.action_dim
-            print("ins:", ins, self.obs_ins, self.action_dim)
+           # print("ins:", ins, self.obs_ins, self.action_dim)
             for i, n in enumerate(critic_hiddens):
                 q_net.add_module(
                     "{}_hidden_{}".format(name_, i),
@@ -238,8 +238,8 @@ class PADDPGTorchModel(TorchModelV2, nn.Module):
         Returns:
             tensor of shape [BATCH_SIZE].
         """
-        print("model_out", model_out.shape)
-        print("actions", actions.shape)
+        #print("model_out", model_out.shape)
+       # print("actions", actions.shape)
         return self.q_model(torch.cat([model_out, actions], -1))
 
     def get_twin_q_values(self, model_out, actions):

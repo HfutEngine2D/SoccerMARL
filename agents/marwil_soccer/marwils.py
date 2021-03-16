@@ -11,11 +11,11 @@ from ray.rllib.utils.torch_ops import explained_variance
 
 def marwil_loss(policy, model, dist_class, train_batch):
     model_out, _ = model.from_batch(train_batch)
-    print("model_out.shape",model_out.shape)
+   # print("model_out.shape",model_out.shape)
     state_values = model.value_function()
     advantages = train_batch[Postprocessing.ADVANTAGES]
     actions = train_batch[SampleBatch.ACTIONS]
-    print("actions", actions[0:2])
+  #  print("actions", actions[0:2])
     for i in range(0, model_out.shape[0]):
         if actions[i][0] == 0:
             model_out[i][-6:]=0
@@ -26,9 +26,9 @@ def marwil_loss(policy, model, dist_class, train_batch):
             model_out[i][3:-4]=0
         else:
             pass
-    print("model_out", model_out[0:2])
+    #print("model_out", model_out[0:2])
     action_dist = dist_class(model_out, model)
-    print("action_dist", action_dist.input_lens)
+   # print("action_dist", action_dist.input_lens)
 
     # Value loss.
     policy.v_loss = 0.5 * torch.mean(torch.pow(state_values - advantages, 2.0))

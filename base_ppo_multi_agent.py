@@ -3,14 +3,17 @@
 
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.impala import ImpalaTrainer
+from ray.rllib.agents.a3c import A3CTrainer
 from ray.tune import grid_search
-from gym import spaces
+from gym import spaces  #space include observation_space and action_space
 import numpy as np
 import hfo_py
 import torch
 
 from soccer_env.mult_agent_env import MultiAgentSoccer
-
+from ray.rllib.models import ModelCatalog
+from ray.rllib.examples.models.parametric_actions_model import TorchParametricActionsModel
 env_config = {
         "server_config":{
             "defense_npcs": 1,
@@ -40,11 +43,19 @@ policies = {
 policy_ids = list(policies.keys())
 
 stop = {
-       "timesteps_total": 20000000,
+       "timesteps_total": 10000000,
        "episode_reward_mean": 13
        }
-results = tune.run(PPOTrainer, config={
+
+ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
+
+results = tune.run(
+    PPOTrainer,
+    #ImpalaTrainer,
+    #A3CTrainer,
+     config={
     "env": MultiAgentSoccer,
+    "model":{"custom_model":"pa_model"},
     "env_config": env_config,
     'multiagent': {
         'policies': policies,
@@ -54,8 +65,14 @@ results = tune.run(PPOTrainer, config={
     "callbacks": {
         "on_episode_end": on_episode_end,
     },
-    "lr": grid_search([0.001, 0.0005]),
+    "lr": grid_search([0.0001]),
     "num_gpus" : torch.cuda.device_count(),
     "num_workers": 5,
     "framework": 'torch'
 }, stop=stop)  
+
+import pickle
+print("best lr:",results.get_best_config(metric="mean_loss",mode="min"))
+fw=open("bestcofig.pkl","wb")
+pickle.dump(results.get_best_config(metric="mean_loss",mode="min"),fw)
+fw.close()
