@@ -49,14 +49,14 @@ class SingleAgentEnv(gym.Env):
         
         self.observation_space=spaces.Dict({
             "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
-            "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
+            # "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
             "orgin_obs":self.orgin_observation_space
 
         })
         
     def update_avail_actions(self):
         self.action_mask=np.array([1.]*self.action_space.n)
-        self.action_assignments=np.array([0.,0.]*self.action_space.n)  #todo
+        # self.action_assignments=np.array([0.,0.]*self.action_space.n)  #todo
         pass   #todo
 
     def get_observation_space(self):
@@ -80,7 +80,7 @@ class SingleAgentEnv(gym.Env):
         self.update_avail_actions()
         obs={
             "action_mask":self.action_mask,
-            "avail_actions":self.action_assignments,
+            # "avail_actions":self.action_assignments,
             "orgin_obs":orig_obs
         }
         return obs, reward, episode_over, {'status': self.status}
@@ -188,7 +188,7 @@ class SingleAgentEnv(gym.Env):
         self.update_avail_actions()
         return {
             "action_mask":self.action_mask,
-            "avail_actions":self.action_assignments,
+            # "avail_actions":self.action_assignments,
             "orgin_obs":self.env.getState()
         }
 
