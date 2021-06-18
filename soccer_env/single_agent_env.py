@@ -181,19 +181,19 @@ ACTION_LOOKUP = {
     #  3 : hfo_py.DRIBBLE, # Used on defense to slide tackle the ball
     #  4 : hfo_py.CATCH,  # Used only by goalie to catch the ball   
     0: hfo_py.NOOP,
-    1: hfo_py.TOLEFT,
-    2: hfo_py.TOPLEFT,
-    3: hfo_py.TOP,
-    4: hfo_py.TOPRIGHT,
-    5: hfo_py.TORIGHT,
-    6: hfo_py.BOTTOMRIGHT,
-    7: hfo_py.BOTTOM,
-    8: hfo_py.BOTTOMLEFT,
+    1: hfo_py.TORIGHT,
+    2: hfo_py.BOTTOMRIGHT,
+    3: hfo_py.BOTTOM,
+    4: hfo_py.BOTTOMLEFT,
+    5: hfo_py.TOLEFT,
+    6: hfo_py.TOPLEFT,
+    7: hfo_py.TOP,
+    8: hfo_py.TOPRIGHT,
 
     9: hfo_py.AUTOPASS,
     10: hfo_py.AUTOTACKLE,
 
-    11: hfo_py.GO_TO_BALL,
+    11: hfo_py.INTERCEPT,
     12: hfo_py.MOVE,
     13: hfo_py.SHOOT,
     14: hfo_py.DRIBBLE
