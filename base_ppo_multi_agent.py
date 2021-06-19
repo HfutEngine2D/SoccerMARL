@@ -14,7 +14,8 @@ import torch
 
 from soccer_env.mult_agent_env import MultiAgentSoccer
 from ray.rllib.models import ModelCatalog
-from ray.rllib.examples.models.parametric_actions_model import TorchParametricActionsModel
+from models.parametric_actions_model import TorchParametricActionsModel
+
 env_config = {
         "server_config":{
             "defense_npcs": 1,
@@ -63,7 +64,7 @@ results = tune.run(
     #A3CTrainer,
      config={
     "env": MultiAgentSoccer,
-    # "model":{"custom_model":"pa_model"},
+    "model":{"custom_model":"pa_model"},
     "env_config": env_config,
     'multiagent': {
         'policies': policies,

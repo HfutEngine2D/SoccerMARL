@@ -56,11 +56,15 @@ class SingleAgentEnv(gym.Env):
         
     def update_avail_actions(self):
         self.action_mask=np.array([1.]*self.action_space.n)
+        if self.env.getState()[12] == -1:
+            self.action_mask[9]=0
+            self.action_mask[13]=0
         # self.action_assignments=np.array([0.,0.]*self.action_space.n)  #todo
         pass   #todo
 
     def get_observation_space(self):
         return self.observation_space
+    
     def get_action_space(self):
         return self.action_space
     # def __del__(self):
