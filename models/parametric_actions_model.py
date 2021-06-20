@@ -20,14 +20,14 @@ class TorchParametricActionsModel(DQNTorchModel):
                  num_outputs,
                  model_config,
                  name,
-                 true_obs_shape=(68, ),
+                 true_obs_shape,
                  action_embed_size=2,
                  **kw):
         DQNTorchModel.__init__(self, obs_space, action_space, num_outputs,
                                model_config, name, **kw)
 
         self.action_embed_model = TorchFC(
-            Box(-1, 1, shape=true_obs_shape), action_space, num_outputs,
+            true_obs_shape, action_space, num_outputs,
             model_config, name + "_action_embed")
 
     def forward(self, input_dict, state, seq_lens):

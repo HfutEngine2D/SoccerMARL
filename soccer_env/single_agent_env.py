@@ -101,7 +101,7 @@ class SingleAgentEnv(gym.Env):
         #  else:
             #  return 0
 
-    def _get_reward(self,action):
+    def _get_reward(self, action):
         """
         Agent is rewarded for minimizing the distance between itself and
         the ball, minimizing the distance between the ball and the goal,
@@ -141,16 +141,12 @@ class SingleAgentEnv(gym.Env):
         reward = 0
         if not self.first_step:
             mtb = self.__move_to_ball_reward(kickable_delta, ball_prox_delta)
-            ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)*0
-            eot = self.__EOT_reward()*0
+            ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)
+            eot = self.__EOT_reward()
             reward = mtb + ktg + eot
             #print("mtb: %.06f ktg: %.06f eot: %.06f"%(mtb,ktg,eot))
 
         self.first_step = False
-        if self.env.playerOnBall().unum == self.unum:
-            reward = reward + 1
-        if self.env.playerOnBall().unum == self.unum and ACTION_LOOKUP[action] == hfo_py.AUTOPASS:
-            reward = reward + 4 
         #print("r =",reward)
         return reward
 

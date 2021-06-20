@@ -64,7 +64,12 @@ results = tune.run(
     #A3CTrainer,
      config={
     "env": MultiAgentSoccer,
-    "model":{"custom_model":"pa_model"},
+    "model":{
+        "custom_model": "pa_model",
+        "custom_model_config":{
+            "true_obs_shape":origin_obs_space
+            }
+        },
     "env_config": env_config,
     'multiagent': {
         'policies': policies,
@@ -76,12 +81,12 @@ results = tune.run(
     },
     "lr": grid_search([0.0001]),
     "num_gpus" : torch.cuda.device_count(),
-    "num_workers": 1,
+    "num_workers": 5,
     "framework": 'torch'
 }, stop=stop)  
 
-import pickle
-print("best lr:",results.get_best_config(metric="mean_loss",mode="min"))
-fw=open("bestcofig.pkl","wb")
-pickle.dump(results.get_best_config(metric="mean_loss",mode="min"),fw)
-fw.close()
+# import pickle
+# print("best lr:",results.get_best_config(metric="mean_loss",mode="min"))
+# fw=open("bestcofig.pkl","wb")
+# pickle.dump(results.get_best_config(metric="mean_loss",mode="min"),fw)
+# fw.close()
