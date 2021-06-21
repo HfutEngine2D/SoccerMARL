@@ -10,7 +10,8 @@ from ray.rllib.utils.framework import try_import_tf, try_import_torch
 from ray.rllib.utils.torch_ops import FLOAT_MIN, FLOAT_MAX
 
 torch, nn = try_import_torch()
-
+import logging
+logger = logging.getLogger(__name__)
 class TorchParametricActionsModel(DQNTorchModel):
     """PyTorch version of above ParametricActionsModel."""
 
@@ -36,6 +37,7 @@ class TorchParametricActionsModel(DQNTorchModel):
         action_mask = input_dict["obs"]["action_mask"]
 
         # Compute the predicted action embedding
+        # logger.info(input_dict["obs"]["orgin_obs"].shape)
         action_embed, _ = self.action_embed_model({
             "obs": input_dict["obs"]["orgin_obs"]
         })
