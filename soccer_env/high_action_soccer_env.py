@@ -1,6 +1,7 @@
 import os, subprocess, time, signal
 import numpy as np
 import gym
+import math
 from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
