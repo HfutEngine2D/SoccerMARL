@@ -19,7 +19,7 @@ from models.parametric_actions_model import TorchParametricActionsModel
 env_config = {
         "server_config":{
             "defense_npcs": 1,
-            "offense_agents":1
+            "offense_agents":2
         },
         " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET ,
     }
@@ -81,7 +81,10 @@ results = tune.run(
     },
     "lr": grid_search([0.0001]),
     "num_gpus" : torch.cuda.device_count(),
-    "num_workers": 5,
+    "num_workers": 2,
+    "output": "/tmp/out-soccer", 
+    "log_level": "INFO",
+    "batch_mode": "complete_episodes",
     "framework": 'torch'
 }, stop=stop)  
 

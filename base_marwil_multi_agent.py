@@ -67,6 +67,7 @@ results = tune.run(
         'multiagent': {
             'policies': policies,
             'policy_mapping_fn': lambda agent_id: policy_ids[agent_id],
+            "count_steps_by": "agent_steps"
         },
         "model": {
             "fcnet_hiddens": [512, 512],
@@ -84,12 +85,12 @@ results = tune.run(
         "num_gpus": 1 if torch.cuda.is_available() else 0,
         "framework": 'torch',
 
-        "input": "/run/media/caprlith/data/1000000_ppo_output",
+        "input": "/tmp/out-soccer/",
         # "input": grid_search(["/run/media/caprlith/data/1000ppo_2/"]),
         "evaluation_num_workers": 1,
         "evaluation_interval": 1,
         "input_evaluation": [],
-        "postprocess_inputs": False,
+        "postprocess_inputs": True,
         "evaluation_config":{
             "input": "sampler"},
         "log_level":'INFO'
