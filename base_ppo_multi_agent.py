@@ -5,7 +5,6 @@ from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.agents.a3c import A3CTrainer
-from ray.rllib.agents.sac import SACTrainer
 from ray.tune import grid_search
 from gym import spaces  #space include observation_space and action_space
 import numpy as np
@@ -14,8 +13,7 @@ import torch
 
 from soccer_env.mult_agent_env import MultiAgentSoccer
 from ray.rllib.models import ModelCatalog
-from models.parametric_actions_model import TorchParametricActionsModel
-
+from ray.rllib.examples.models.parametric_actions_model import TorchParametricActionsModel
 env_config = {
         "server_config":{
             "defense_npcs": 1,
@@ -31,18 +29,12 @@ def on_episode_end(info):
 
 server_config = env_config["server_config"]
 obs_space_size = 59 + 9*(server_config["defense_npcs"]+server_config["offense_agents"]-1)
-origin_obs_space = spaces.Box(low=-1, high=1,
+obs_space = spaces.Box(low=-1, high=1,
                                             shape=((obs_space_size,)), dtype=np.float32)
-observation_space=spaces.Dict({
-            "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
-            # "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
-            "orgin_obs":origin_obs_space
-
-        })
 act_space = spaces.Discrete(14)
 
 def gen_policy(_):
-    return (None, observation_space, act_space, {})
+    return (None, obs_space, act_space, {})
 
 # Setup PPO with an ensemble of `num_policies` different policies
 policies = {
@@ -55,21 +47,13 @@ stop = {
        "episode_reward_mean": 13
        }
 
-ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
 
 results = tune.run(
-    # SACTrainer,
     PPOTrainer,
     #ImpalaTrainer,
     #A3CTrainer,
      config={
     "env": MultiAgentSoccer,
-    "model":{
-        "custom_model": "pa_model",
-        "custom_model_config":{
-            "true_obs_shape":origin_obs_space
-            }
-        },
     "env_config": env_config,
     'multiagent': {
         'policies': policies,

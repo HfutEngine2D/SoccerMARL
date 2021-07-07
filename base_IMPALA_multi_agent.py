@@ -16,7 +16,7 @@ from models.parametric_actions_model import TorchParametricActionsModel
 
 env_config = {
     "server_config": {
-        "defense_npcs": 2,
+        "defense_npcs": 1,
         "offense_agents": 2
     },
     " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET,
@@ -32,14 +32,9 @@ def on_episode_end(info):
 server_config = env_config["server_config"]
 obs_space_size = 59 + 9 * (
     server_config["defense_npcs"] + server_config["offense_agents"] - 1)
-origin_obs_space = spaces.Box(low=-1, high=1,
+observation_space = spaces.Box(low=-1, high=1,
                                             shape=((obs_space_size,)), dtype=np.float32)
-observation_space=spaces.Dict({
-            "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
-            # "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
-            "orgin_obs":origin_obs_space
 
-        })
 act_space = spaces.Discrete(14)
 
 def gen_policy(_):
@@ -56,7 +51,7 @@ stop = {
        "episode_reward_mean": 10
     }
 
-ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
+# ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
 
 results = tune.run(
     ImpalaTrainer,
@@ -65,10 +60,10 @@ results = tune.run(
     config={
         "env": MultiAgentSoccer,
         "model":{
-            "custom_model": "pa_model",
-            "custom_model_config":{
-                "true_obs_shape":origin_obs_space
-                }
+            # "custom_model": "pa_model",
+            # "custom_model_config":{
+            #     # "true_obs_shape":origin_obs_space
+            #     }
             },
         "env_config": env_config,
         'multiagent': {
