@@ -43,7 +43,7 @@ policies = {
 policy_ids = list(policies.keys())
 
 stop = {
-       "timesteps_total": 10000000,
+       "timesteps_total": 11000000,
        "episode_reward_mean": 13
        }
 
@@ -66,8 +66,14 @@ results = tune.run(
     "lr": grid_search([0.0001]),
     "num_gpus" : torch.cuda.device_count(),
     "num_workers": 5,
+    "output": "/tmp/out-soccer", 
+    "log_level": "INFO",
+    "batch_mode": "complete_episodes",
     "framework": 'torch'
-}, stop=stop)  
+},  checkpoint_freq=100,
+    restore="/home/caprlith/ray_results/PPO_2021-07-07_20-30-19/PPO_MultiEnv_177dc_00000_0_lr=0.0001_2021-07-07_20-30-19/checkpoint_2100/checkpoint-2100",
+    checkpoint_at_end=True,
+    stop=stop)  
 
 # import pickle
 # print("best lr:",results.get_best_config(metric="mean_loss",mode="min"))
