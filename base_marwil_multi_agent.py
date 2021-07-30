@@ -15,7 +15,7 @@ from models.parametric_actions_model import TorchParametricActionsModel
 
 env_config = {
     "server_config": {
-        "defense_npcs": 1,
+        "defense_npcs": 2,
         "offense_agents": 2
     },
     " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET,
@@ -31,14 +31,14 @@ def on_episode_end(info):
 server_config = env_config["server_config"]
 obs_space_size = 59 + 9 * (
     server_config["defense_npcs"] + server_config["offense_agents"] - 1)
-origin_obs_space = spaces.Box(low=-1, high=1,
+observation_space = spaces.Box(low=-1, high=1,
                                             shape=((obs_space_size,)), dtype=np.float32)
-observation_space=spaces.Dict({
-            "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
-            # "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
-            "orgin_obs":origin_obs_space
+# observation_space=spaces.Dict({
+#             "action_mask":spaces.Box(0,1,shape=(14,),dtype=np.float32),
+#             # "avail_actions":spaces.Box(-10,10,shape=(14,2),dtype=np.float32),   #todo
+#             "orgin_obs":origin_obs_space
 
-        })
+#         })
 act_space = spaces.Discrete(14)
 
 def gen_policy(_):
@@ -51,11 +51,11 @@ policies = {
 policy_ids = list(policies.keys())
 
 stop = {
-       "timesteps_total": 10000000,
+       "timesteps_total": 1000000,
        "episode_reward_mean": 10
     }
 
-ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
+# ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
 
 results = tune.run(
     MARWILTrainer,
@@ -73,10 +73,10 @@ results = tune.run(
             "fcnet_hiddens": [512, 512],
             "fcnet_activation": "relu", # 默认为tanh
             # grid_search(["swish", "relu", "tanh"])
-            "custom_model": "pa_model",
-            "custom_model_config":{
-                "true_obs_shape":origin_obs_space
-            }
+            # "custom_model": "pa_model",
+            # "custom_model_config":{
+            #     "true_obs_shape":origin_obs_space
+            # }
         },
         "callbacks": {
             "on_episode_end": on_episode_end,
@@ -85,8 +85,8 @@ results = tune.run(
         "num_gpus": 1 if torch.cuda.is_available() else 0,
         "framework": 'torch',
 
-        "input": "/tmp/out-soccer/",
-        # "input": grid_search(["/run/media/caprlith/data/1000ppo_2/"]),
+        "input": "/run/media/caprlith/data/2v2",
+        # "input": grid_search(["/run/media/caprlith/data/2v1/"]),
         "evaluation_num_workers": 1,
         "evaluation_interval": 1,
         "input_evaluation": [],
