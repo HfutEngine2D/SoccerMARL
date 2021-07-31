@@ -59,104 +59,102 @@ class LowActionSoccerEnv(HighActionSoccerEnv):
         self.first_step = True
 
         self.unum = self.env.getUnum()  # uniform number (identifier) of our lone agent
-        #print("UNUM =", self.unum)
+        print("UNUM =", self.unum)
 
-    def _get_reward(self,action):
-        """ Reward is given for scoring a goal. """
-        if self.env.playerOnBall().unum == self.unum and ACTION_LOOKUP[action] == hfo_py.PASS:
-            return 4
-        elif self.status == hfo_py.GOAL or self.env.playerOnBall().unum == self.unum
-            return 2
-        else:
-            return 0
-    # def _get_reward(self):
-    #     """
-    #     Agent is rewarded for minimizing the distance between itself and
-    #     the ball, minimizing the distance between the ball and the goal,
-    #     and scoring a goal.
-    #     """
-    #     current_state = self.env.getState()
-    #     #print("State =",current_state)
-    #     #print("len State =",len(current_state))
-    #     ball_proximity = current_state[53]
-    #     goal_proximity = current_state[15]
-    #     ball_dist = 1.0 - ball_proximity
-    #     goal_dist = 1.0 - goal_proximity
-    #     kickable = current_state[12]
-    #     ball_ang_sin_rad = current_state[51]
-    #     ball_ang_cos_rad = current_state[52]
-    #     ball_ang_rad = math.acos(ball_ang_cos_rad)
-    #     if ball_ang_sin_rad < 0:
-    #         ball_ang_rad *= -1.
-    #     goal_ang_sin_rad = current_state[13]
-    #     goal_ang_cos_rad = current_state[14]
-    #     goal_ang_rad = math.acos(goal_ang_cos_rad)
-    #     if goal_ang_sin_rad < 0:
-    #         goal_ang_rad *= -1.
-    #     alpha = max(ball_ang_rad, goal_ang_rad) - min(ball_ang_rad,
-    #                                                   goal_ang_rad)
-    #     ball_dist_goal = math.sqrt(ball_dist * ball_dist +
-    #                                goal_dist * goal_dist - 2. * ball_dist *
-    #                                goal_dist * math.cos(alpha))
-    #     # Compute the difference in ball proximity from the last step
-    #     if not self.first_step:
-    #         ball_prox_delta = ball_proximity - self.old_ball_prox
-    #         kickable_delta = kickable - self.old_kickable
-    #         ball_dist_goal_delta = ball_dist_goal - self.old_ball_dist_goal
-    #     self.old_ball_prox = ball_proximity
-    #     self.old_kickable = kickable
-    #     self.old_ball_dist_goal = ball_dist_goal
-    #     #print(self.env.playerOnBall())
-    #     #print(self.env.playerOnBall().unum)
-    #     #print(self.env.getUnum())
-    #     reward = 0
-    #     if not self.first_step:
-    #         '''# Reward the agent for moving towards the ball
-    #         reward += ball_prox_delta
-    #         if kickable_delta > 0 and not self.got_kickable_reward:
-    #             reward += 1.
-    #             self.got_kickable_reward = True
-    #         # Reward the agent for kicking towards the goal
-    #         reward += 0.6 * -ball_dist_goal_delta
-    #         # Reward the agent for scoring
-    #         if self.status == hfo_py.GOAL:
-    #             reward += 5.0'''
-    #         '''reward = self.__move_to_ball_reward(kickable_delta, ball_prox_delta) + \
-    #                 3. * self.__kick_to_goal_reward(ball_dist_goal_delta) + \
-    #                 self.__EOT_reward();'''
-    #         mtb = self.__move_to_ball_reward(kickable_delta, ball_prox_delta)
-    #         ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)
-    #         eot = self.__EOT_reward()
-    #         reward = mtb + ktg + eot
-    #         #print("mtb: %.06f ktg: %.06f eot: %.06f"%(mtb,ktg,eot))
+    def _take_action(self, action):
+        # print("take_action", action)
+        """ Converts the action space into an HFO action. """
+        action_type = ACTION_LOOKUP[action[0]]
+        self.env.act(action_type, *action[action[0]+1])
 
-    #     self.first_step = False
-    #     #print("r =",reward)
-    #     return reward
+    def _get_reward(self):
+        """
+        Agent is rewarded for minimizing the distance between itself and
+        the ball, minimizing the distance between the ball and the goal,
+        and scoring a goal.
+        """
+        current_state = self.env.getState()
+        #print("State =",current_state)
+        #print("len State =",len(current_state))
+        ball_proximity = current_state[53]
+        goal_proximity = current_state[15]
+        ball_dist = 1.0 - ball_proximity
+        goal_dist = 1.0 - goal_proximity
+        kickable = current_state[12]
+        ball_ang_sin_rad = current_state[51]
+        ball_ang_cos_rad = current_state[52]
+        ball_ang_rad = math.acos(ball_ang_cos_rad)
+        if ball_ang_sin_rad < 0:
+            ball_ang_rad *= -1.
+        goal_ang_sin_rad = current_state[13]
+        goal_ang_cos_rad = current_state[14]
+        goal_ang_rad = math.acos(goal_ang_cos_rad)
+        if goal_ang_sin_rad < 0:
+            goal_ang_rad *= -1.
+        alpha = max(ball_ang_rad, goal_ang_rad) - min(ball_ang_rad,
+                                                      goal_ang_rad)
+        ball_dist_goal = math.sqrt(ball_dist * ball_dist +
+                                   goal_dist * goal_dist - 2. * ball_dist *
+                                   goal_dist * math.cos(alpha))
+        # Compute the difference in ball proximity from the last step
+        if not self.first_step:
+            ball_prox_delta = ball_proximity - self.old_ball_prox
+            kickable_delta = kickable - self.old_kickable
+            ball_dist_goal_delta = ball_dist_goal - self.old_ball_dist_goal
+        self.old_ball_prox = ball_proximity
+        self.old_kickable = kickable
+        self.old_ball_dist_goal = ball_dist_goal
+        #print(self.env.playerOnBall())
+        #print(self.env.playerOnBall().unum)
+        #print(self.env.getUnum())
+        reward = 0
+        if not self.first_step:
+            '''# Reward the agent for moving towards the ball
+            reward += ball_prox_delta
+            if kickable_delta > 0 and not self.got_kickable_reward:
+                reward += 1.
+                self.got_kickable_reward = True
+            # Reward the agent for kicking towards the goal
+            reward += 0.6 * -ball_dist_goal_delta
+            # Reward the agent for scoring
+            if self.status == hfo_py.GOAL:
+                reward += 5.0'''
+            '''reward = self.__move_to_ball_reward(kickable_delta, ball_prox_delta) + \
+                    3. * self.__kick_to_goal_reward(ball_dist_goal_delta) + \
+                    self.__EOT_reward();'''
+            mtb = self.__move_to_ball_reward(kickable_delta, ball_prox_delta)
+            ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)
+            eot = self.__EOT_reward()
+            reward = mtb + ktg + eot
+            #print("mtb: %.06f ktg: %.06f eot: %.06f"%(mtb,ktg,eot))
 
-    # def __move_to_ball_reward(self, kickable_delta, ball_prox_delta):
-    #     reward = 0.
-    #     if self.env.playerOnBall().unum < 0 or self.env.playerOnBall(
-    #     ).unum == self.unum:
-    #         reward += ball_prox_delta
-    #     if kickable_delta >= 1 and not self.got_kickable_reward:
-    #         reward += 1.
-    #         self.got_kickable_reward = True
-    #     return reward
+        self.first_step = False
+        #print("r =",reward)
+        return reward
 
-    # def __kick_to_goal_reward(self, ball_dist_goal_delta):
-    #     if (self.env.playerOnBall().unum == self.unum):
-    #         return -ball_dist_goal_delta
-    #     elif self.got_kickable_reward == True:
-    #         return 0.2 * -ball_dist_goal_delta
-    #     return 0.
+    def __move_to_ball_reward(self, kickable_delta, ball_prox_delta):
+        reward = 0.
+        if self.env.playerOnBall().unum < 0 or self.env.playerOnBall(
+        ).unum == self.unum:
+            reward += ball_prox_delta
+        if kickable_delta >= 1 and not self.got_kickable_reward:
+            reward += 1.
+            self.got_kickable_reward = True
+        return reward
 
-    # def __EOT_reward(self):
-    #     if self.status == hfo_py.GOAL:
-    #         return 5.
-    #     #elif self.status == hfo_py.CAPTURED_BY_DEFENSE:
-    #     #    return -1.
-    #     return 0.
+    def __kick_to_goal_reward(self, ball_dist_goal_delta):
+        if (self.env.playerOnBall().unum == self.unum):
+            return -ball_dist_goal_delta
+        elif self.got_kickable_reward == True:
+            return 0.2 * -ball_dist_goal_delta
+        return 0.
+
+    def __EOT_reward(self):
+        if self.status == hfo_py.GOAL:
+            return 5.
+        #elif self.status == hfo_py.CAPTURED_BY_DEFENSE:
+        #    return -1.
+        return 0.
 
 
 ACTION_LOOKUP = {
@@ -165,5 +163,4 @@ ACTION_LOOKUP = {
     2: hfo_py.KICK,
     3: hfo_py.TACKLE,  # Used on defense to slide tackle the ball
     4: hfo_py.CATCH,  # Used only by goalie to catch the ball
-    5: hfo_py.PASS
 }

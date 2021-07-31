@@ -149,7 +149,7 @@ class HighActionSoccerEnv(gym.Env, utils.EzPickle):
         self._take_action(action)
         self.status = self.env.step()
         reward = self._get_reward()
-        ob = self.env.getState(action)
+        ob = self.env.getState()
         episode_over = self.status != hfo_py.IN_GAME
         return ob, reward, episode_over, {'status': self.status}
 
