@@ -2,73 +2,85 @@
 # -*- coding: utf-8 -*-
 
 from ray import tune
-from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.agents.a3c import A3CTrainer
 from ray.tune import grid_search
 from gym import spaces  #space include observation_space and action_space
 import numpy as np
 import hfo_py
 import torch
-
+import argparse
 from soccer_env.mult_agent_env import MultiAgentSoccer
-from ray.rllib.models import ModelCatalog
-from models.parametric_actions_model import TorchParametricActionsModel
 
-env_config = {
-    "server_config": {
-        "defense_npcs": 1,
-        "offense_agents": 2
-    },
-    " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET,
-}
+parser = argparse.ArgumentParser()
 
+parser.add_argument("--run", type=str, default="impala")
+parser.add_argument("--restore", type=str, default=None)
+parser.add_argument("--local-dir", type=str, default="~/ray_results")
+# parser.add_argument("--as-test", action="store_true")
+parser.add_argument("--defense-npcs", type=int, default=1)
+parser.add_argument("--offense-agents", type=int, default=2)
+parser.add_argument("--stop-iters", type=int, default=200)
+parser.add_argument("--stop-timesteps", type=int, default=15000000)
+parser.add_argument("--stop-reward", type=float, default=10.0)
 
-def on_episode_end(info):
-    episode = info["episode"]
-    # print("episode.last_info_for()", episode.last_info_for(0))
-    episode.custom_metrics["goal_rate"] = int(
-        episode.last_info_for(0)['status'] == hfo_py.GOAL)
+if __name__ == "__main__":
+    args = parser.parse_args()
+    
+    if args.run == "impala":
+        from ray.rllib.agents.impala import ImpalaTrainer
+    else:
+        from agents.impala_klloss import ImpalaTrainer
 
-server_config = env_config["server_config"]
-obs_space_size = 59 + 9 * (
-    server_config["defense_npcs"] + server_config["offense_agents"] - 1)
-observation_space = spaces.Box(low=-1, high=1,
-                                            shape=((obs_space_size,)), dtype=np.float32)
-
-act_space = spaces.Discrete(14)
-
-def gen_policy(_):
-    return (None, observation_space, act_space, {})
-
-# Setup PPO with an ensemble of `num_policies` different policies
-policies = {
-    'policy_{}'.format(i): gen_policy(i) for i in range(server_config["offense_agents"]) 
-}
-policy_ids = list(policies.keys())
-
-stop = {
-       "timesteps_total": 10000000,
-       "episode_reward_mean": 10
+    env_config = {
+        "server_config": {
+            "defense_npcs": args.defense_npcs,
+            "offense_agents": args.offense_agents
+        },
+        " feature_set": hfo_py.LOW_LEVEL_FEATURE_SET,
     }
 
-# ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
 
-results = tune.run(
-    ImpalaTrainer,
-    # PPOTrainer,
-    #A3CTrainer,
+    def on_episode_end(info):
+        episode = info["episode"]
+        # print("episode.last_info_for()", episode.last_info_for(0))
+        episode.custom_metrics["goal_rate"] = int(
+            episode.last_info_for(0)['status'] == hfo_py.GOAL)
+
+    server_config = env_config["server_config"]
+    obs_space_size = 59 + 9 * (
+        server_config["defense_npcs"] + server_config["offense_agents"] - 1)
+    observation_space = spaces.Box(low=-1, high=1,
+                                                shape=((obs_space_size,)), dtype=np.float32)
+
+    act_space = spaces.Discrete(14)
+
+    def gen_policy(_):
+        return (None, observation_space, act_space, {})
+
+    # Setup PPO with an ensemble of `num_policies` different policies
+    policies = {
+        'policy_{}'.format(i): gen_policy(i) for i in range(server_config["offense_agents"]) 
+    }
+    policy_ids = list(policies.keys())
+
+    stop = {
+        "training_iteration": args.stop_iters,
+        "timesteps_total": args.stop_timesteps,
+        "episode_reward_mean": args.stop_reward
+        }
+
+    # ModelCatalog.register_custom_model("pa_model",TorchParametricActionsModel)
     config={
         "env": MultiAgentSoccer,
         "model":{
-            # "custom_model": "pa_model",
-            # "custom_model_config":{
-            #     # "true_obs_shape":origin_obs_space
-            #     }
-            },
+            "fcnet_hiddens":[512, 512],
+            "fcnet_activation": "relu",
+        },
         "env_config": env_config,
         'multiagent': {
             'policies': policies,
             'policy_mapping_fn': lambda agent_id: policy_ids[agent_id],
+            "count_steps_by": "agent_steps"
         },
         # "model": {
         #     "fcnet_hiddens":
@@ -82,9 +94,32 @@ results = tune.run(
         "callbacks": {
             "on_episode_end": on_episode_end,
         },
-        "lr": grid_search([0.0001,0.0002]),
+        "lr": 0.0006,
         "num_gpus": 1 if torch.cuda.is_available() else 0,
-        "num_workers": 5,
+        "num_workers": 1,
+        "log_level":'INFO',
         "framework": 'torch'
     },
-    stop=stop)
+    config = config[0]
+    if args.run == "bc":
+        config.update({
+            "input": "/home/caprlith/dataset/"+str(args.offense_agents)+"v"+str(args.defense_npcs)+"/",
+            "evaluation_num_workers": 1,
+            "evaluation_interval": 1,
+            "input_evaluation": [],
+            "postprocess_inputs": True,
+            "evaluation_config":{
+                "input": "sampler"}
+        })
+    print(config)
+
+        
+    results = tune.run(
+        ImpalaTrainer,
+        # PPOTrainer,
+        config = config,
+        checkpoint_freq=20,
+        checkpoint_at_end=True,
+        restore=args.restore,
+        local_dir=args.local_dir,
+        stop=stop)
