@@ -18,14 +18,17 @@ parser.add_argument("--restore", type=str, default=None)
 parser.add_argument("--local-dir", type=str, default="~/ray_results")
 # parser.add_argument("--as-test", action="store_true")
 parser.add_argument("--defense-npcs", type=int, default=1)
+parser.add_argument("--num-workers", type=int, default=1)
+parser.add_argument("--offline", type=float, default=0.0)
 parser.add_argument("--offense-agents", type=int, default=2)
-parser.add_argument("--stop-iters", type=int, default=200)
-parser.add_argument("--stop-timesteps", type=int, default=15000000)
-parser.add_argument("--stop-reward", type=float, default=10.0)
+parser.add_argument("--stop-iters", type=int, default=800)
+parser.add_argument("--stop-timesteps", type=int, default=5000000)
+parser.add_argument("--stop-reward", type=float, default=100.0)
 
 if __name__ == "__main__":
     args = parser.parse_args()
     
+    inputdir = "/run/media/caprlith/data/"+str(args.offense_agents)+"v"+str(args.defense_npcs)+"/"
     if args.run == "impala":
         from ray.rllib.agents.impala import ImpalaTrainer
     else:
@@ -96,20 +99,27 @@ if __name__ == "__main__":
         },
         "lr": 0.0006,
         "num_gpus": 1 if torch.cuda.is_available() else 0,
-        "num_workers": 1,
+        "num_workers": args.num_workers,
         "log_level":'INFO',
         "framework": 'torch'
     },
     config = config[0]
     if args.run == "bc":
         config.update({
-            "input": "/home/caprlith/dataset/"+str(args.offense_agents)+"v"+str(args.defense_npcs)+"/",
+            "input": inputdir,
             "evaluation_num_workers": 1,
             "evaluation_interval": 1,
             "input_evaluation": [],
             "postprocess_inputs": True,
             "evaluation_config":{
                 "input": "sampler"}
+        })
+    if args.offline >0.0:
+        config.update({
+            "input": {
+                "sampler":1-args.offline,
+                inputdir: args.offline
+            }
         })
     print(config)
 
@@ -118,7 +128,7 @@ if __name__ == "__main__":
         ImpalaTrainer,
         # PPOTrainer,
         config = config,
-        checkpoint_freq=20,
+        checkpoint_freq=200,
         checkpoint_at_end=True,
         restore=args.restore,
         local_dir=args.local_dir,
