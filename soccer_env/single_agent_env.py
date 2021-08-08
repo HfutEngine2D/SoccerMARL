@@ -4,6 +4,7 @@ import signal
 import socket
 import subprocess
 import time
+import random
 from contextlib import closing
 
 import gym
@@ -46,6 +47,7 @@ class SingleAgentEnv(gym.Env):
         self.old_ball_dist_goal = 0
         self.got_kickable_reward = False
         self.first_step = True
+        self.last_pass = 10000
         self.unum = self.env.getUnum()  # uniform number (identifier) of our lone agent
 
     def get_observation_space(self):
@@ -73,12 +75,12 @@ class SingleAgentEnv(gym.Env):
         action_type = ACTION_LOOKUP[action]
         self.env.act(action_type)
 
-    #  def _get_reward(self):
-        #  """ Reward is given for scoring a goal. """
-        #  if self.status == hfo_py.GOAL:
-            #  return 1
-        #  else:
-            #  return 0
+    # def _get_reward(self):
+    #     """ Reward is given for scoring a goal. """
+    #     if self.status == hfo_py.GOAL:
+    #         return 1
+    #     else:
+    #         return 0
 
     def _get_reward(self):
         """
@@ -122,7 +124,12 @@ class SingleAgentEnv(gym.Env):
             mtb = self.__move_to_ball_reward(kickable_delta, ball_prox_delta)
             ktg = 3. * self.__kick_to_goal_reward(ball_dist_goal_delta)
             eot = self.__EOT_reward()
-            reward = mtb + ktg + eot
+            # if random.random() >0.9:
+            #     print(current_state[60])
+            pass_reward = self.__pass_reward() if current_state[60] < 0.95 and current_state[60]!=0.0 else 0
+            reward = mtb + ktg + eot + self.__pass_reward() + pass_reward
+            if current_state[60] > 0.95:
+                reward = reward-0.5 # penalty for neardest
             #print("mtb: %.06f ktg: %.06f eot: %.06f"%(mtb,ktg,eot))
 
         self.first_step = False
@@ -135,7 +142,7 @@ class SingleAgentEnv(gym.Env):
         ).unum == self.unum:
             reward += ball_prox_delta
         if kickable_delta >= 1 and not self.got_kickable_reward:
-            reward += 1.
+            reward += 0.2
             self.got_kickable_reward = True
         return reward
 
@@ -146,6 +153,15 @@ class SingleAgentEnv(gym.Env):
             return 0.2 * -ball_dist_goal_delta
         return 0.
 
+    def __pass_reward(self):
+        if self.env.playerOnBall().side == hfo_py.LEFT and self.got_kickable_reward :
+            self.got_kickable_reward = False
+            self.last_pass = 0
+            return 0.05
+        else:
+            self.last_pass = 10 if self.last_pass >10 else self.last_pass+1
+        return 0.
+        
     def __EOT_reward(self):
         if self.status == hfo_py.GOAL:
             return 5.

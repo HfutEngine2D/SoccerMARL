@@ -76,7 +76,7 @@ if __name__ == "__main__":
     config={
         "env": MultiAgentSoccer,
         "model":{
-            "fcnet_hiddens":[512, 512],
+            "fcnet_hiddens":[1024, 512],
             "fcnet_activation": "relu",
         },
         "env_config": env_config,
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         "callbacks": {
             "on_episode_end": on_episode_end,
         },
-        "lr": 0.0006,
+        "lr": 0.0005,
         "num_gpus": 1 if torch.cuda.is_available() else 0,
         "num_workers": args.num_workers,
         "log_level":'INFO',
@@ -116,6 +116,8 @@ if __name__ == "__main__":
         })
     if args.offline >0.0:
         config.update({
+            "postprocess_inputs": True,
+            "input_evaluation": [],
             "input": {
                 "sampler":1-args.offline,
                 inputdir: args.offline
